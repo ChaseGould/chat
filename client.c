@@ -16,6 +16,8 @@
 
 
 // taken from: https://stackoverflow.com/questions/16870485/how-can-i-read-an-input-string-of-unknown-length
+//be careful as this function will pickup the last keystroke which is usually <enter>?
+//in these cases must place a scanf before inputstring to pickup the <enter>
 char *inputString(FILE* fp, size_t size){
 //The size is extended by the input with the value of the provisional
     char *str;
@@ -88,6 +90,16 @@ void myIPAddress(){
            freeifaddrs(ifaddr);
 }
 
+int get_free_socket(bool sockets[6])
+{
+	for (int i = 0; i < 6; i++)
+	{
+		if (sockets[i] == 0)
+			return i;
+	}
+
+	printf("All sockets in use.");
+}
 
 
 
@@ -95,14 +107,29 @@ void myIPAddress(){
 int main(int argc, char *argv[]) 
 { 
 	int PORT = atoi (argv[1]);
+	//used to pickup empty strings
+	char *msg;
 
 	char buffer[1024] = {0}; 
-	int sock;
-	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) 
-	{ 
-		printf("\n Socket creation error \n"); 
-		return -1; 
-	} 
+	int sock[6];
+
+	//INITIALIZE 6 SOCKETS
+	for (int i = 0; i < 6; i++)
+	{
+		if ((sock[i] = socket(AF_INET, SOCK_STREAM, 0)) == -1) 
+		{ 
+			printf("\n Socket creation error \n"); 
+			return -1; 
+		} 
+	}
+
+	//array keeps track of which sockets are in use. all initialized to not be in use.
+	bool sockets_in_use[6];
+	for(int i = 0; i < 6; i++)
+	{
+		sockets_in_use[i] = false;
+	}
+
 	
 	commandMenu();
 
@@ -111,23 +138,20 @@ int main(int argc, char *argv[])
 	int peerPorts[10];
 	
 
-	//initialize all peers addresses and ports to zero.
+	//initialize all peers addresses and ports to arbitrary value.
 	for (int i = 0; i < 10; i++)
 	{
 		strcpy(peerAddrs[i], "a"); 
 		peerPorts[i] = 0;	
 
 	}
-
-
-	//list of ports for connected peers
 	
 	bool exit = false;
 	char *choice;
 	while(exit == false)
 	{
 
-		printf("selection: ");
+		printf("\nselection: ");
 		choice = inputString(stdin, 10);
 
 		//help
@@ -157,14 +181,15 @@ int main(int argc, char *argv[])
 			memset(&serv_addr, '0', sizeof(serv_addr)); 
 			serv_addr.sin_family = AF_INET; 
 			 
-	
 			//get destination address and port from user.
 			printf("Enter the destination ip address: ");
 			const char *destAddress;
 			destAddress= inputString(stdin, 100);
 			printf("Enter the destination port number: ");
 			int newPORT;
-			scanf("\n%i", &newPORT);
+			scanf("%i", &newPORT);
+
+	
 			serv_addr.sin_port = htons(newPORT);
 			
 			//sending requests by default to my ip address this needs to send requests to a user selected ip address
@@ -175,13 +200,15 @@ int main(int argc, char *argv[])
 				continue;
 			} 
 			
-			
-			if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) 
+			int free_socket = get_free_socket(sockets_in_use);
+			if (connect(sock[free_socket], (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) 
 				printf("\nConnection Failed \n"); 
 			
 			else
 			{
 				printf("The connection to peer (%s) is successfully established\n", destAddress);
+				//pickup empty string
+				fgets(msg, 100, stdin);
 				//add to peer list
 				for(int i = 0; i < 10; i++)
 				{	
@@ -193,8 +220,6 @@ int main(int argc, char *argv[])
 					}	
 				}
 			}
-				
-
 		}
 	
 
@@ -215,19 +240,25 @@ int main(int argc, char *argv[])
 		//send
 		else if(strcmp(choice,"send") == 0)
 		{
-			printf("send message: ");
+			printf("enter connection id: ");
+			int connectionID;			
+			scanf("%i", &connectionID);
+			//pickup the empty string
+			fgets(msg, 100, stdin);	
+			printf("enter message: ");
 			char *message;
-			message = inputString(stdin, 20);
-
+			message = inputString(stdin, 100);
+	
 			//second argument should be a pointer to a buffer of a message to send
-			send(sock , message , strlen(message) , 0 );
-			printf("message sent\n"); 
-			//clear message variable
+			send(sock[connectionID] , message , strlen(message) , 0 );
+
 			message = "";
+
 			char buffer[1024] = {0}; 
 			int valread;
-			valread = read( sock , buffer, 1024); 
-			printf("received message: %s\n",buffer ); 
+			valread = read( sock[0] , buffer, 1024); 
+			if (strlen(buffer) > 0)
+				printf("received message: %s\n",buffer ); 
 
 		}
 

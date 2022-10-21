@@ -36,6 +36,8 @@ int main(int argc, char *argv[])
 { 
 	//port number input from command line.
 	int PORT = atoi (argv[1]);
+	
+	printf("server waiting");
 
 	
 	// Creating socket file descriptor 

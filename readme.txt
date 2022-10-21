@@ -15,3 +15,5 @@ The server program can receive messages from clients and send messages back to t
 The command to run the client program is ./client <port number>
 the command to run the server program is ./server <port number>
 
+
+updated on 10/21/22 and fixed bugs.

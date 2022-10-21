@@ -108,7 +108,7 @@ int main(int argc, char *argv[])
 { 
 	int PORT = atoi (argv[1]);
 	//used to pickup empty strings
-	char *msg;
+	char msg[100];
 
 	char buffer[1024] = {0}; 
 	int sock[6];
@@ -206,6 +206,7 @@ int main(int argc, char *argv[])
 			
 			else
 			{
+				sockets_in_use[free_socket] = 1; //mark the curr socket as in use.
 				printf("The connection to peer (%s) is successfully established\n", destAddress);
 				//pickup empty string
 				fgets(msg, 100, stdin);
@@ -256,7 +257,7 @@ int main(int argc, char *argv[])
 
 			char buffer[1024] = {0}; 
 			int valread;
-			valread = read( sock[0] , buffer, 1024); 
+			valread = read( sock[connectionID] , buffer, 1024); 
 			if (strlen(buffer) > 0)
 				printf("received message: %s\n",buffer ); 
 
